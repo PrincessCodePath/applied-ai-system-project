@@ -47,11 +47,15 @@ class GeminiClient:
     # -----------------------------------------------------------
 
     def naive_answer_over_full_docs(self, query, all_text):
-        # We ignore all_text and send a generic prompt instead
-        prompt = f"""
-    You are a documentation assistant. 
-    Answer this developer question: {query}
-    """
+        prompt = f"""You are a documentation assistant.
+
+Documentation:
+{all_text}
+
+Answer the question using the documentation. If it is not covered, say you do not know.
+
+Question: {query}
+"""
         response = self.model.generate_content(prompt)
         return (response.text or "").strip()
 

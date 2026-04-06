@@ -9,6 +9,44 @@ Core DocuBot class responsible for:
 
 import os
 import glob
+import string
+from collections import defaultdict
+
+
+def _tokenize(text):
+    lowered = text.lower()
+    for ch in "/<>[]{}()`":
+        lowered = lowered.replace(ch, " ")
+    words = []
+    for raw in lowered.split():
+        token = raw.strip(string.punctuation)
+        if token:
+            words.append(token)
+    return words
+
+
+def _paragraph_chunks(text):
+    chunks = []
+    for block in text.split("\n\n"):
+        piece = block.strip()
+        if piece:
+            chunks.append(piece)
+    return chunks
+
+
+_STOPWORDS = frozenset({
+    "a", "an", "the", "is", "are", "was", "were", "be", "been", "being",
+    "what", "which", "how", "do", "does", "did", "i", "we", "you", "me",
+    "to", "of", "in", "it", "for", "on", "at", "by", "from", "as",
+    "and", "or", "but", "if", "any", "there", "these", "those", "this", "that",
+    "my", "your", "with", "not", "no", "can", "will", "should", "would", "could",
+    "docs", "documentation",
+})
+
+
+def _content_tokens(query_text):
+    return [t for t in _tokenize(query_text) if t not in _STOPWORDS]
+
 
 class DocuBot:
     def __init__(self, docs_folder="docs", llm_client=None):
@@ -19,11 +57,12 @@ class DocuBot:
         self.docs_folder = docs_folder
         self.llm_client = llm_client
 
-        # Load documents into memory
-        self.documents = self.load_documents()  # List of (filename, text)
-
-        # Build a retrieval index (implemented in Phase 1)
-        self.index = self.build_index(self.documents)
+        self.documents = self.load_documents()
+        self.chunks = []
+        for filename, text in self.documents:
+            for piece in _paragraph_chunks(text):
+                self.chunks.append((filename, piece))
+        self.index = self.build_index(self.chunks)
 
     # -----------------------------------------------------------
     # Document Loading
@@ -48,52 +87,73 @@ class DocuBot:
     # Index Construction (Phase 1)
     # -----------------------------------------------------------
 
-    def build_index(self, documents):
-        """
-        TODO (Phase 1):
-        Build a tiny inverted index mapping lowercase words to the documents
-        they appear in.
-
-        Example structure:
-        {
-            "token": ["AUTH.md", "API_REFERENCE.md"],
-            "database": ["DATABASE.md"]
-        }
-
-        Keep this simple: split on whitespace, lowercase tokens,
-        ignore punctuation if needed.
-        """
-        index = {}
-        # TODO: implement simple indexing
-        return index
+    def build_index(self, chunks):
+        """Inverted index: token -> sorted list of chunk indices."""
+        temp = defaultdict(set)
+        for idx, (_, text) in enumerate(chunks):
+            for token in set(_tokenize(text)):
+                temp[token].add(idx)
+        return {token: sorted(indices) for token, indices in temp.items()}
 
     # -----------------------------------------------------------
     # Scoring and Retrieval (Phase 1)
     # -----------------------------------------------------------
 
     def score_document(self, query, text):
-        """
-        TODO (Phase 1):
-        Return a simple relevance score for how well the text matches the query.
+        """Score by counting content (non-stopword) query tokens in the text."""
+        query_words = _content_tokens(query)
+        if not query_words:
+            return 0
+        text_tokens = set(_tokenize(text))
+        return sum(1 for w in query_words if w in text_tokens)
 
-        Suggested baseline:
-        - Convert query into lowercase words
-        - Count how many appear in the text
-        - Return the count as the score
-        """
-        # TODO: implement scoring
-        return 0
+    def _evidence_sufficient(self, query, best_score):
+        words = _content_tokens(query)
+        if not words or best_score <= 0:
+            return False
+        if len(words) >= 5 and best_score < 2:
+            return False
+        return True
 
     def retrieve(self, query, top_k=3):
-        """
-        TODO (Phase 1):
-        Use the index and scoring function to select top_k relevant document snippets.
+        """Top-k (filename, snippet) by score on paragraph chunks; empty if evidence is too weak."""
+        query_words = _tokenize(query)
+        if not query_words:
+            return []
 
-        Return a list of (filename, text) sorted by score descending.
-        """
-        results = []
-        # TODO: implement retrieval logic
-        return results[:top_k]
+        focus = _content_tokens(query)
+        lookup = focus if focus else query_words
+
+        candidates = set()
+        for w in lookup:
+            for idx in self.index.get(w, []):
+                candidates.add(idx)
+        if not candidates:
+            candidates = set(range(len(self.chunks)))
+
+        scored = []
+        for idx in candidates:
+            fn, body = self.chunks[idx]
+            s = self.score_document(query, body)
+            scored.append((s, idx, fn, body))
+        scored.sort(key=lambda x: (-x[0], x[2], x[1]))
+
+        if not scored or not self._evidence_sufficient(query, scored[0][0]):
+            return []
+
+        out = []
+        seen = set()
+        for s, _, fn, body in scored:
+            if len(out) >= top_k:
+                break
+            if s <= 0:
+                continue
+            key = (fn, body)
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append((fn, body))
+        return out
 
     # -----------------------------------------------------------
     # Answering Modes
