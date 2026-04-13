@@ -89,11 +89,23 @@ pytest
 
 ![image alt](https://github.com/PrincessCodePath/applied-ai-system-project/blob/main/assets/fixed%20bug%202.png)
 
-![image alt](https://github.com/PrincessCodePath/applied-ai-system-project/blob/main/assets/fixed%20bug%203.png)
+![image alt](https://github.com/PrincessCodePath/applied-ai-system-project/blob/
+main/assets/fixed%20bug%203.png)
 
+## AI enhancements (intention + usage issues)
 
+### Intention
 
+The goal of the AI Coach feature is to help the player make smarter guesses using the information the game already provides (range, prior guesses, and higher/lower feedback). It also calls out unhelpful patterns like repeating the same guess or making tiny changes when the hint keeps saying to go higher/lower.
 
+### How to use it
 
+- Start the app.
+- In the sidebar, open **AI Coach**.
+- Click **Get AI suggestion** to get a suggested next guess and a short explanation.
+- If `GEMINI_API_KEY` is set, it will try Gemini first. If not, it uses a deterministic fallback.
 
+### Usage issue (quota limits)
 
+Gemini sometimes returns a 429 quota/rate-limit error (free-tier limits). When that happens, the app shows `fallback_reason=gemini_error: 429 ...` and falls back to the built-in heuristic instead of crashing. This makes the feature reliable even when the API is temporarily unavailable.  
+  
