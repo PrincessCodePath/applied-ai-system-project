@@ -22,6 +22,28 @@ It works without an API key (fallback suggestion), but to enable Gemini suggesti
 export GEMINI_API_KEY="your_key_here"
 ```
 
+## Design and Architecture
+
+### Main components
+- **UI**: Streamlit app (`app.py`)
+- **Game logic**: parsing guesses, checking outcomes, scoring (`logic_utils.py`)
+- **AI Coach**: suggestion + advice (Gemini when available, otherwise fallback) (`logic_utils.py`)
+- **Guardrails**: range validation, JSON parsing checks, and fallback reasons (Gemini errors like 429, invalid output, repeats)
+- **Testing**: `pytest` tests for core logic (`tests/test_game_logic.py`)
+
+### Data flow (input → process → output)
+- Player enters a guess in Streamlit.
+- The app validates and records the guess in `st.session_state` (history, attempts, last outcome).
+- The game logic updates the outcome and narrows the possible range.
+- If the player clicks **Get AI suggestion**, the AI Coach uses:
+  - the current possible range
+  - guess history + last outcome
+  - Gemini (if key + quota allow), otherwise a deterministic fallback
+- The app displays a suggestion and explanation, plus `source=gemini` or `source=fallback` with `fallback_reason`.
+
+### System diagram
+
+
 ## Bugs found
 
 ### Bug 1: Invalid input consumes an attempt
@@ -111,4 +133,18 @@ Gemini sometimes returns a 429 quota/rate-limit error (free-tier limits). When t
 
 ![image alt](https://github.com/PrincessCodePath/applied-ai-system-project/blob/main/assets/ai%20enhancements.png)
 
-  
+## Limitations / bias
+
+The AI Coach is not always going to be right. If Gemini is available, it can still give suggestions that sound confident without actually being that helpful. When Gemini is not available, the fallback is just based on the remaining range and previous guesses, so it is much more limited and only works off the rules we built into it. I also noticed that even when the API key is set up correctly, the free-tier limits can still stop the AI feature from working.
+
+## Misuse + how I prevent it
+
+One issue is that a player could trust the AI Coach too much and assume it always knows the best next move. To help with that, the app checks Gemini’s response before using it and rejects suggestions that are invalid, out of range, or repeated. If that happens, it switches to a safer fallback suggestion instead. The point of the AI Coach is to support the player’s thinking, not make the decision for them.
+
+## What surprised me
+
+What surprised me most was how much rate limits actually matter. Even with a real Gemini key, the app can still hit a 429 error, so making the feature work well was not just about prompting. It also meant thinking about what happens when the API fails and making sure there was still a backup plan.
+
+## AI collaboration (helpful + flawed)
+
+One helpful thing the AI pointed out was that the attempts counter issue was probably coming from how attempts was being initialized and updated, and that ended up leading me to the fix. One thing it got wrong was making it seem like the app would automatically continue where I left off every time I reopened it. Streamlit state only lasts within the current session unless you build in a separate way to save it.
