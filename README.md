@@ -20,7 +20,8 @@ python -m streamlit run app.py
 - Actual: The game increases the attempt counter even when the input is invalid.
 - Cause (code): In `app.py`, `st.session_state.attempts += 1` runs before `parse_guess(raw_guess)` validates the input, so invalid guesses still get counted.
 
-![Bug 1 - Invalid input consumes an attempt](assets/Bug 1 Invalid input.png)
+![image alt](https://github.com/PrincessCodePath/applied-ai-system-project/blob/main/assets/Bug%201%20Invalid%20input.png)
+
 
 ### Bug 2: Attempts left starts one lower than expected
 
@@ -28,7 +29,7 @@ python -m streamlit run app.py
 - Actual: It shows 7 attempts left immediately.
 - Cause (code): In `app.py`, attempts is initialized to 1 (`st.session_state.attempts = 1`), and the UI calculates attempts left as `attempt_limit - st.session_state.attempts`, so it starts one lower.
 
-![Bug 2 - Attempts left starts one lower than expected](assets/Bug 2 Attempts left .png)
+![image alt](https://github.com/PrincessCodePath/applied-ai-system-project/blob/main/assets/Bug%202%20Attempts%20left%20.png)
 
 ### Bug 3: New Game does not fully reset state after win/loss
 
@@ -36,7 +37,7 @@ python -m streamlit run app.py
 - Actual: After winning/losing, clicking “New Game” can still leave the game stuck in the won/lost state or keep old score/history.
 - Cause (code): In `app.py`, the `new_game` button only resets attempts and secret, but it doesn’t reset status, score, or history. The app also stops gameplay when `st.session_state.status != "playing"`.
 
-![Bug 3 - New Game does not fully reset](assets/Bug 3 “New Game”.png)
+![image alt](https://github.com/PrincessCodePath/applied-ai-system-project/blob/main/assets/Bug%203%20%E2%80%9CNew%20Game%E2%80%9D.png)
 
 ## AI debugging suggestions + critique
 
@@ -74,11 +75,11 @@ pytest
 
 - Screenshot of a winning game after fixes:
 
-![Bug 1 fix - Invalid input does not consume attempt](assets/fixed bug 1.png)
+![image alt](https://github.com/PrincessCodePath/applied-ai-system-project/blob/main/assets/fixed%20bug%201.png)
 
-![Bug 2 fix - Attempts left starts correctly](assets/fixed bug 2.png)
+![image alt](https://github.com/PrincessCodePath/applied-ai-system-project/blob/main/assets/fixed%20bug%202.png)
 
-![Bug 3 fix - New Game resets state](assets/fixed bug 3.png)
+![image alt](https://github.com/PrincessCodePath/applied-ai-system-project/blob/main/assets/fixed%20bug%203.png)
 
 
 
