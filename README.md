@@ -107,5 +107,8 @@ The goal of the AI Coach feature is to help the player make smarter guesses usin
 
 ### Usage issue (quota limits)
 
-Gemini sometimes returns a 429 quota/rate-limit error (free-tier limits). When that happens, the app shows `fallback_reason=gemini_error: 429 ...` and falls back to the built-in heuristic instead of crashing. This makes the feature reliable even when the API is temporarily unavailable.  
+Gemini sometimes returns a 429 quota/rate-limit error (free-tier limits). When that happens, the app shows `fallback_reason=gemini_error: 429 ...` and falls back to the built-in heuristic instead of crashing. This makes the feature reliable even when the API is temporarily unavailable. 
+
+![image alt](https://github.com/PrincessCodePath/applied-ai-system-project/blob/main/assets/ai%20enhancements.png)
+
   
