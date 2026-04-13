@@ -15,25 +15,19 @@ python -m streamlit run app.py
 ## Bugs found
 
 
-### Bug 1: Difficulty change does not reset the secret number
+### Bug 1: Invalid input consumes an attempt
 - Expected:
 - Actual:
 - Steps to reproduce:
 - Cause (code):
 
-### Bug 2: Invalid input consumes an attempt
+### Bug 2: Attempts left starts one lower than expected
 - Expected:
 - Actual:
 - Steps to reproduce:
 - Cause (code):
 
-### Bug 3: Attempts left starts one lower than expected
-- Expected:
-- Actual:
-- Steps to reproduce:
-- Cause (code):
-
-### Bug 4: New Game does not fully reset state after win/loss
+### Bug 3: New Game does not fully reset state after win/loss
 - Expected:
 - Actual:
 - Steps to reproduce:
