@@ -1,17 +1,22 @@
 import random
+import os
 import streamlit as st
+from dotenv import load_dotenv
 
 from logic_utils import (
+    ai_coach_suggestion,
     check_guess,
     get_range_for_difficulty,
     parse_guess,
+    update_possible_range,
     update_score,
 )
+
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 
 st.set_page_config(page_title="Glitchy Guesser", page_icon="🎮")
 
 st.title("🎮 Game Glitch Investigator")
-st.caption("An AI-generated guessing game. Something is off.")
 
 st.sidebar.header("Settings")
 
@@ -33,6 +38,20 @@ low, high = get_range_for_difficulty(difficulty)
 st.sidebar.caption(f"Range: {low} to {high}")
 st.sidebar.caption(f"Attempts allowed: {attempt_limit}")
 
+if (
+    "difficulty" not in st.session_state
+    or st.session_state.difficulty != difficulty
+):
+    st.session_state.difficulty = difficulty
+    st.session_state.secret = random.randint(low, high)
+    st.session_state.attempts = 0
+    st.session_state.score = 0
+    st.session_state.status = "playing"
+    st.session_state.history = []
+    st.session_state.possible_low = low
+    st.session_state.possible_high = high
+    st.session_state.last_outcome = ""
+
 if "secret" not in st.session_state:
     st.session_state.secret = random.randint(low, high)
 
@@ -48,6 +67,15 @@ if "status" not in st.session_state:
 if "history" not in st.session_state:
     st.session_state.history = []
 
+if "possible_low" not in st.session_state:
+    st.session_state.possible_low = low
+
+if "possible_high" not in st.session_state:
+    st.session_state.possible_high = high
+
+if "last_outcome" not in st.session_state:
+    st.session_state.last_outcome = ""
+
 st.subheader("Make a guess")
 
 st.info(
@@ -60,6 +88,8 @@ with st.expander("Developer Debug Info"):
     st.write("Attempts:", st.session_state.attempts)
     st.write("Score:", st.session_state.score)
     st.write("Difficulty:", difficulty)
+    st.write("Possible range:", (st.session_state.possible_low, st.session_state.possible_high))
+    st.write("Last outcome:", st.session_state.last_outcome)
     st.write("History:", st.session_state.history)
 
 raw_guess = st.text_input(
@@ -75,12 +105,38 @@ with col2:
 with col3:
     show_hint = st.checkbox("Show hint", value=True)
 
+with st.sidebar.expander("AI Coach", expanded=False):
+    api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    st.caption("Optional: set GEMINI_API_KEY to enable Gemini.")
+    ai_enabled = st.checkbox("Enable AI Coach", value=bool(api_key))
+    ai_button = st.button("Get AI suggestion")
+    if ai_button:
+        attempts_left = attempt_limit - st.session_state.attempts
+        suggested, advice, confidence, source, reason = ai_coach_suggestion({
+            "api_key": api_key if ai_enabled else "",
+            "low": int(st.session_state.possible_low),
+            "high": int(st.session_state.possible_high),
+            "history": list(st.session_state.history),
+            "last_outcome": st.session_state.last_outcome,
+            "attempts_used": int(st.session_state.attempts),
+            "attempts_left": int(attempts_left),
+        })
+        st.write(f"Suggestion: {suggested}" if suggested is not None else "Suggestion: (none)")
+        if advice:
+            st.write(advice)
+        st.caption(f"source={source} confidence={confidence:.2f}")
+        if source == "fallback" and ai_enabled and api_key:
+            st.caption(f"fallback_reason={reason}")
+
 if new_game:
     st.session_state.attempts = 0
     st.session_state.secret = random.randint(low, high)
     st.session_state.score = 0
     st.session_state.status = "playing"
     st.session_state.history = []
+    st.session_state.possible_low = low
+    st.session_state.possible_high = high
+    st.session_state.last_outcome = ""
     st.success("New game started.")
     st.rerun()
 
@@ -102,6 +158,13 @@ if submit:
         st.session_state.history.append(guess_int)
 
         outcome = check_guess(guess_int, st.session_state.secret)
+        st.session_state.last_outcome = outcome
+        st.session_state.possible_low, st.session_state.possible_high = update_possible_range(
+            st.session_state.possible_low,
+            st.session_state.possible_high,
+            guess_int,
+            outcome,
+        )
         if outcome == "Win":
             message = "🎉 Correct!"
         elif outcome == "Too High":
@@ -135,4 +198,3 @@ if submit:
                 )
 
 st.divider()
-st.caption("Built by an AI that claims this code is production-ready.")

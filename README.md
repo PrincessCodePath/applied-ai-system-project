@@ -12,6 +12,16 @@ pip install -r requirements.txt
 python -m streamlit run app.py
 ```
 
+## AI Enhancement: AI Coach (optional)
+
+The app includes an AI Coach that suggests the next guess and explains why, based on your remaining range, guess history, and recent higher/lower hints.
+
+It works without an API key (fallback suggestion), but to enable Gemini suggestions set:
+
+```bash
+export GEMINI_API_KEY="your_key_here"
+```
+
 ## Bugs found
 
 ### Bug 1: Invalid input consumes an attempt
