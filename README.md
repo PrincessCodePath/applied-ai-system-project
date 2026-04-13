@@ -43,6 +43,7 @@ export GEMINI_API_KEY="your_key_here"
 
 ### System diagram
 
+![image alt](https://github.com/PrincessCodePath/applied-ai-system-project/blob/main/assets/mermaid-ai-diagram-2026-04-13-084033.png)
 
 ## Bugs found
 
